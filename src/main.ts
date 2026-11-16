@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
@@ -89,8 +90,13 @@ async function bootstrap() {
     customSiteTitle: 'Haven API Documentation',
   });
 
+  const configService = app.get(ConfigService);
+  const devMode = configService.get<string>('devMode') || 'development';
+  const isStaging = configService.get<boolean>('isStaging');
   const port = parseInt(process.env.PORT || '4000', 10);
+
   await app.listen(port);
+  logger.log(`Active Environment: ${devMode.toUpperCase()} | Database: ${isStaging ? 'MongoDB Atlas (Staging Cluster)' : 'Local MongoDB'}`);
   logger.log(`Haven backend running at: http://localhost:${port}/api/v1`);
   logger.log(`Swagger documentation available at: http://localhost:${port}/api/docs`);
 }

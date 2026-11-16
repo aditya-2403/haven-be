@@ -33,6 +33,7 @@ import { StorageModule } from './modules/storage/storage.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         uri: config.get<string>('database.uri'),
+        dbName: config.get<string>('database.dbName') || 'haven',
       }),
     }),
     AuditLogsModule,

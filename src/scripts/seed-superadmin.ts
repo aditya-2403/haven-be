@@ -6,7 +6,11 @@ import * as path from 'path';
 // Load .env
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/haven';
+const isStaging = (process.env.DEV_MODE || process.env.NODE_ENV || '').toLowerCase() === 'staging';
+const MONGODB_URI = isStaging
+  ? (process.env.MONGODB_URI_STAGING || process.env.MONGODB_URI || 'mongodb+srv://yoyosahoo319_db_user:1EhQEBfCuNaiadie@cluster0.tu8rpov.mongodb.net')
+  : (process.env.MONGODB_URI_LOCAL || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/haven');
+const DB_NAME = process.env.MONGODB_DATABASE || 'haven';
 const ADMIN_NAME = process.env.SUPER_ADMIN_NAME || 'Haven Super Admin';
 const ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL || 'admin@haven.local').toLowerCase().trim();
 const ADMIN_PASSWORD = process.env.SUPER_ADMIN_PASSWORD || 'HavenAdmin2026!Secure#Access';
@@ -39,8 +43,8 @@ const UserModel = mongoose.models.User
   : mongoose.model<IUser>('User', UserSchema);
 
 async function bootstrap() {
-  console.log(`Connecting to MongoDB at: ${MONGODB_URI}...`);
-  await mongoose.connect(MONGODB_URI);
+  console.log(`Connecting to MongoDB at: ${MONGODB_URI} (db: ${DB_NAME})...`);
+  await mongoose.connect(MONGODB_URI, { dbName: DB_NAME });
   console.log('Connected to MongoDB.');
 
   const existingSuperAdmin = await UserModel.findOne({ role: 'SUPER_ADMIN' }).exec();
