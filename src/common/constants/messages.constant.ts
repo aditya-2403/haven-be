@@ -10,6 +10,11 @@ export const AUTH_MESSAGES = {
   LOGGED_OUT_SUCCESS: 'Logged out successfully',
   USER_CONTEXT_NOT_FOUND: 'User context not found',
   INSUFFICIENT_PERMISSIONS: (role: string) => `Insufficient permissions for role: ${role}`,
+  PROFILE_UPDATE_SUCCESS: 'Profile updated successfully',
+  PASSWORD_CHANGE_SUCCESS: 'Password changed successfully',
+  CURRENT_PASSWORD_INCORRECT: 'Current password is incorrect',
+  NEW_PASSWORD_SAME: 'New password cannot be the same as your current password',
+  PASSWORD_MIN_LENGTH: 'New password must be at least 6 characters',
 } as const;
 
 export const ORGANIZATION_MESSAGES = {

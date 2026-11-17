@@ -1,8 +1,8 @@
-import { Controller, Post, Get, Body, Req, Res, UseGuards, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Req, Res, UseGuards, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshTokenDto } from './dto/auth.dto';
+import { LoginDto, RefreshTokenDto, UpdateProfileDto, ChangePasswordDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CurrentUserPayload } from '../../common/interfaces/current-user.interface';
@@ -96,6 +96,58 @@ export class AuthController {
   async getMe(@CurrentUser() user: CurrentUserPayload) {
     const data = await this.authService.getCurrentUser(user);
     return { data };
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update personal profile information' })
+  async updateProfile(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateProfileDto,
+    @Req() req: Request,
+  ) {
+    const data = await this.authService.updateProfile(user, dto);
+
+    await this.auditLogsService.log({
+      organizationId: user.organizationId,
+      userId: user.userId,
+      userEmail: user.email,
+      action: 'UPDATE_PROFILE',
+      resource: 'auth',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: dto,
+    });
+
+    return {
+      message: AUTH_MESSAGES.PROFILE_UPDATE_SUCCESS,
+      data,
+    };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change current user password' })
+  async changePassword(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
+  ) {
+    const result = await this.authService.changePassword(user, dto);
+
+    await this.auditLogsService.log({
+      organizationId: user.organizationId,
+      userId: user.userId,
+      userEmail: user.email,
+      action: 'CHANGE_PASSWORD',
+      resource: 'auth',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return result;
   }
 }
 

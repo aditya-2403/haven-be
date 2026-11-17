@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
+import { Employee, EmployeeSchema } from '../employees/schemas/employee.schema';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -29,6 +30,7 @@ import { UsersModule } from '../users/users.module';
       { name: User.name, schema: UserSchema },
       { name: RefreshToken.name, schema: RefreshTokenSchema },
       { name: Organization.name, schema: OrganizationSchema },
+      { name: Employee.name, schema: EmployeeSchema },
     ]),
   ],
   controllers: [AuthController],

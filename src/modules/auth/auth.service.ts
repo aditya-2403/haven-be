@@ -8,7 +8,8 @@ import * as crypto from 'crypto';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { RefreshToken, RefreshTokenDocument } from './schemas/refresh-token.schema';
 import { Organization, OrganizationDocument } from '../organizations/schemas/organization.schema';
-import { LoginDto } from './dto/auth.dto';
+import { Employee, EmployeeDocument } from '../employees/schemas/employee.schema';
+import { LoginDto, UpdateProfileDto, ChangePasswordDto } from './dto/auth.dto';
 import { CurrentUserPayload } from '../../common/interfaces/current-user.interface';
 import { AUTH_MESSAGES } from '../../common/constants/messages.constant';
 
@@ -21,6 +22,8 @@ export class AuthService {
     private readonly refreshTokenModel: Model<RefreshTokenDocument>,
     @InjectModel(Organization.name)
     private readonly orgModel: Model<OrganizationDocument>,
+    @InjectModel(Employee.name)
+    private readonly employeeModel: Model<EmployeeDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -147,6 +150,57 @@ export class AuthService {
       phone: user.phone,
       avatarFileId: user.avatarFileId,
     };
+  }
+
+  async updateProfile(currentUser: CurrentUserPayload, dto: UpdateProfileDto) {
+    const user = await this.userModel.findById(currentUser.userId).exec();
+    if (!user) {
+      throw new UnauthorizedException(AUTH_MESSAGES.USER_NOT_FOUND);
+    }
+
+    if (dto.firstName !== undefined) user.firstName = dto.firstName.trim();
+    if (dto.lastName !== undefined) user.lastName = dto.lastName.trim();
+    if (dto.phone !== undefined) user.phone = dto.phone.trim();
+
+    await user.save();
+
+    // If user has a linked employee record, keep fullName and phone synchronized
+    if (user.employeeId) {
+      const updatedFullName = `${user.firstName} ${user.lastName}`.trim();
+      await this.employeeModel
+        .findByIdAndUpdate(user.employeeId, {
+          fullName: updatedFullName,
+          ...(dto.phone !== undefined && { phone: dto.phone.trim() }),
+        })
+        .exec();
+    }
+
+    return this.getCurrentUser(currentUser);
+  }
+
+  async changePassword(currentUser: CurrentUserPayload, dto: ChangePasswordDto) {
+    const user = await this.userModel.findById(currentUser.userId).exec();
+    if (!user) {
+      throw new UnauthorizedException(AUTH_MESSAGES.USER_NOT_FOUND);
+    }
+
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new BadRequestException(AUTH_MESSAGES.CURRENT_PASSWORD_INCORRECT);
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(AUTH_MESSAGES.NEW_PASSWORD_SAME);
+    }
+
+    if (!dto.newPassword || dto.newPassword.length < 6) {
+      throw new BadRequestException(AUTH_MESSAGES.PASSWORD_MIN_LENGTH);
+    }
+
+    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await user.save();
+
+    return { message: AUTH_MESSAGES.PASSWORD_CHANGE_SUCCESS };
   }
 
   private async generateTokens(user: UserDocument) {
